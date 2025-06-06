@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
 import session from "express-session";
+import memorystore from "memorystore"; // FIX: Import memorystore
 import { 
   schedulePickupSchema, 
   crewLoginSchema, 
@@ -21,8 +22,14 @@ declare module 'express-session' {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // FIX: Initialize memorystore for more reliable session management
+  const MemoryStore = memorystore(session);
+
   // Session middleware
   app.use(session({
+    store: new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    }),
     secret: process.env.SESSION_SECRET || 'pickup-scheduler-secret',
     resave: false,
     saveUninitialized: false,
@@ -52,7 +59,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const data = schedulePickupSchema.parse(req.body);
       
-      // Extract ZIP code from address
       const zipMatch = data.address.match(/\b\d{5}\b/);
       let assignedCrewId = null;
       
@@ -64,7 +70,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Create pickup
       const pickup = await storage.createPickup({
         address: data.address,
         scheduled_date: data.desired_date,
@@ -73,15 +78,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         crew_id: assignedCrewId
       });
 
-      // Send SMS confirmation (extract phone from address or use a default)
       const smsTemplate = await storage.getSmsTemplate("Scheduled");
       if (smsTemplate) {
         let message = smsTemplate.template_text
           .replace("[scheduled_date]", data.desired_date)
           .replace("[timeslot]", data.timeslot);
         
-        // For demo purposes, we'll skip SMS unless a phone number is provided
-        // In real implementation, you'd extract phone from form or require it
         try {
           // await sendSms("customer-phone", message);
         } catch (error) {
@@ -164,7 +166,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Mark pickup as completed
   app.post("/api/crew/complete/:pickupId", requireCrew, async (req, res) => {
     try {
       const pickupId = parseInt(req.params.pickupId);
@@ -179,7 +180,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         completed_at: new Date()
       });
 
-      // Send completion SMS
       const smsTemplate = await storage.getSmsTemplate("Completed");
       if (smsTemplate && updatedPickup) {
         const message = smsTemplate.template_text
@@ -230,12 +230,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Admin auth status check
   app.get("/api/admin/auth", (req, res) => {
     res.json({ authenticated: !!req.session.adminId });
   });
 
-  // Admin dashboard stats
   app.get("/api/admin/stats", requireAdmin, async (req, res) => {
     try {
       const stats = await storage.getPickupStats();
@@ -246,7 +244,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin pickup management
   app.get("/api/admin/pickups", requireAdmin, async (req, res) => {
     try {
       const { startDate, endDate, crewId, status } = req.query;
@@ -278,7 +275,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // CSV export
   app.get("/api/admin/pickups/export", requireAdmin, async (req, res) => {
     try {
       const { startDate, endDate } = req.query;
@@ -289,7 +285,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const pickups = await storage.getPickupsWithFilters(filters);
       
-      // Create CSV content
       const csvHeaders = "id,address,scheduled_date,timeslot,crew_email,status,created_at,completed_at\n";
       const csvRows = pickups.map(p => 
         `${p.id},"${p.address}",${p.scheduled_date},${p.scheduled_timeslot},${p.crew_email || ''},${p.status},${p.created_at?.toISOString() || ''},${p.completed_at?.toISOString() || ''}`
@@ -409,4 +404,4 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   return httpServer;
-}
+}  
