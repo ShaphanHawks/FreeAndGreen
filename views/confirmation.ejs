@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Pickup Scheduler</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <h1 class="nav-title">Pickup Scheduler</h1>
+            <div class="nav-links">
+                <a href="/schedule" class="nav-link">Schedule Another</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main">
+        <div class="container">
+            <div class="confirmation-container">
+                <div class="success-icon">✅</div>
+                <h2>Pickup Scheduled Successfully!</h2>
+                
+                <div class="confirmation-details">
+                    <h3>Your Pickup Details:</h3>
+                    <div class="detail-row">
+                        <strong>Pickup ID:</strong> #<%= pickup.id %>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Address:</strong> <%= pickup.address %>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Date:</strong> <%= pickup.scheduled_date %>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Time:</strong> <%= pickup.scheduled_timeslot %>
+                    </div>
+                </div>
+
+                <div class="confirmation-message">
+                    <p>Thank you—your pickup is scheduled for <strong><%= pickup.scheduled_date %></strong> between <strong><%= pickup.scheduled_timeslot %></strong>.</p>
+                    <p>You'll receive an SMS confirmation shortly with the pickup details.</p>
+                </div>
+
+                <div class="confirmation-actions">
+                    <a href="/schedule" class="btn btn-primary">Schedule Another Pickup</a>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

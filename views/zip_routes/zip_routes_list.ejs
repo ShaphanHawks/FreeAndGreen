@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Pickup Scheduler</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <h1 class="nav-title">Pickup Scheduler</h1>
+            <div class="nav-links">
+                <span class="nav-user">Admin Panel</span>
+                <a href="/admin/logout" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main">
+        <div class="container-wide">
+            <div class="page-header">
+                <div>
+                    <h2><%= title %></h2>
+                    <a href="/admin/dashboard" class="breadcrumb">← Admin Dashboard</a>
+                </div>
+                <a href="/admin/zip-routes/new" class="btn btn-primary">Add New Route</a>
+            </div>
+
+            <div class="info-box">
+                <p>Configure automatic crew assignment based on ZIP code prefixes. When a pickup is scheduled, the system will check these rules to auto-assign the appropriate crew.</p>
+            </div>
+
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="error-message">
+                    <%= error %>
+                </div>
+            <% } %>
+
+            <% if (zipRoutes.length > 0) { %>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ZIP Prefix</th>
+                                <th>Assigned Crew</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% zipRoutes.forEach(route => { %>
+                                <tr>
+                                    <td><strong><%= route.zip_prefix %></strong></td>
+                                    <td><%= route.crew_display_name %></td>
+                                    <td class="actions">
+                                        <form method="POST" action="/admin/zip-routes/<%= route.id %>/delete" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this ZIP route?')">
+                                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            <% } else { %>
+                <div class="empty-state">
+                    <div class="empty-icon">🗺️</div>
+                    <h3>No ZIP Routes Configured</h3>
+                    <p>Set up ZIP code routing to automatically assign pickups to crews based on their service areas.</p>
+                    <a href="/admin/zip-routes/new" class="btn btn-primary">Add First Route</a>
+                </div>
+            <% } %>
+        </div>
+    </main>
+</body>
+</html>

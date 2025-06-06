@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Pickup Scheduler</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <h1 class="nav-title">Pickup Scheduler</h1>
+            <div class="nav-links">
+                <span class="nav-user">Admin Panel</span>
+                <a href="/admin/logout" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main">
+        <div class="container">
+            <div class="page-header">
+                <h2><%= title %></h2>
+                <a href="/admin/crews" class="btn btn-secondary">← Back to Crews</a>
+            </div>
+
+            <% if (error) { %>
+                <div class="error-message">
+                    <%= error %>
+                </div>
+            <% } %>
+
+            <div class="form-container">
+                <form method="POST" action="<%= isEdit ? `/admin/crews/${crew.id}` : '/admin/crews' %>" class="form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="display_name" class="form-label">Display Name *</label>
+                            <input 
+                                type="text" 
+                                id="display_name" 
+                                name="display_name" 
+                                class="form-input"
+                                value="<%= crew.display_name || '' %>"
+                                placeholder="e.g., North Side Crew"
+                                required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email" class="form-label">Email *</label>
+                            <input 
+                                type="email" 
+                                id="email" 
+                                name="email" 
+                                class="form-input"
+                                value="<%= crew.email || '' %>"
+                                placeholder="crew@example.com"
+                                required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password" class="form-label">
+                            Password <%= isEdit ? '' : '*' %>
+                            <% if (isEdit) { %>
+                                <small>(leave blank to keep current password)</small>
+                            <% } %>
+                        </label>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            class="form-input"
+                            placeholder="Enter password"
+                            <%= isEdit ? '' : 'required' %>>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="zip_prefixes" class="form-label">ZIP Prefixes</label>
+                        <input 
+                            type="text" 
+                            id="zip_prefixes" 
+                            name="zip_prefixes" 
+                            class="form-input"
+                            value="<%= crew.zip_prefixes || '' %>"
+                            placeholder="e.g., 627, 628, 629 (comma-separated)">
+                        <small class="form-help">Enter ZIP code prefixes that should auto-assign to this crew, separated by commas.</small>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <%= isEdit ? 'Update Crew' : 'Create Crew' %>
+                        </button>
+                        <a href="/admin/crews" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

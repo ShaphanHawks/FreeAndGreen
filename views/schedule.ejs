@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Pickup Scheduler</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <h1 class="nav-title">Pickup Scheduler</h1>
+            <div class="nav-links">
+                <a href="/schedule" class="nav-link active">Schedule Pickup</a>
+                <a href="/crew/login" class="nav-link">Crew Login</a>
+                <a href="/admin/login" class="nav-link">Admin</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main">
+        <div class="container">
+            <div class="form-container">
+                <div class="form-header">
+                    <h2>Schedule Your Appliance Pickup</h2>
+                    <p>Simple, fast, and reliable pickup scheduling</p>
+                </div>
+
+                <% if (error) { %>
+                    <div class="error-message">
+                        <%= error %>
+                    </div>
+                <% } %>
+
+                <form method="POST" action="/schedule" class="form">
+                    <div class="form-group">
+                        <label for="address" class="form-label">
+                            <i class="icon">📍</i>Pickup Address
+                        </label>
+                        <textarea 
+                            id="address" 
+                            name="address" 
+                            class="form-textarea"
+                            placeholder="Enter your complete address including ZIP code"
+                            rows="3"
+                            required><%= formData.address || '' %></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="desired_date" class="form-label">
+                            <i class="icon">📅</i>Desired Date
+                        </label>
+                        <input 
+                            type="date" 
+                            id="desired_date" 
+                            name="desired_date" 
+                            class="form-input"
+                            value="<%= formData.desired_date || '' %>"
+                            min="<%= new Date().toISOString().split('T')[0] %>"
+                            required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="timeslot" class="form-label">
+                            <i class="icon">🕐</i>Preferred Time Slot
+                        </label>
+                        <select 
+                            id="timeslot" 
+                            name="timeslot" 
+                            class="form-select"
+                            required>
+                            <option value="">Select a time slot</option>
+                            <option value="8 AM–10 AM" <%= (formData.timeslot === '8 AM–10 AM') ? 'selected' : '' %>>8 AM – 10 AM</option>
+                            <option value="10 AM–12 PM" <%= (formData.timeslot === '10 AM–12 PM') ? 'selected' : '' %>>10 AM – 12 PM</option>
+                            <option value="12 PM–2 PM" <%= (formData.timeslot === '12 PM–2 PM') ? 'selected' : '' %>>12 PM – 2 PM</option>
+                            <option value="2 PM–4 PM" <%= (formData.timeslot === '2 PM–4 PM') ? 'selected' : '' %>>2 PM – 4 PM</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="form-submit">
+                        Schedule Pickup
+                    </button>
+                </form>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

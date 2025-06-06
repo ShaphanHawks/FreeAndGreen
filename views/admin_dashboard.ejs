@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Pickup Scheduler</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <h1 class="nav-title">Pickup Scheduler</h1>
+            <div class="nav-links">
+                <span class="nav-user">Admin Panel</span>
+                <a href="/admin/logout" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main">
+        <div class="container-wide">
+            <div class="dashboard-header">
+                <h2>Admin Dashboard</h2>
+                <p>System overview and management</p>
+            </div>
+
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="error-message">
+                    <%= error %>
+                </div>
+            <% } %>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card stat-primary">
+                    <div class="stat-icon">📅</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Today's Pickups</div>
+                        <div class="stat-value"><%= stats.todayPickups %></div>
+                    </div>
+                </div>
+
+                <div class="stat-card stat-warning">
+                    <div class="stat-icon">⚠️</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Unassigned</div>
+                        <div class="stat-value"><%= stats.unassignedPickups %></div>
+                    </div>
+                </div>
+
+                <div class="stat-card stat-success">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Active Crews</div>
+                        <div class="stat-value"><%= stats.totalCrews %></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="action-grid">
+                <a href="/admin/pickups" class="action-card">
+                    <div class="action-icon">📋</div>
+                    <div class="action-content">
+                        <h3>View All Pickups</h3>
+                        <p>Manage and assign pickups</p>
+                    </div>
+                </a>
+
+                <a href="/admin/crews" class="action-card">
+                    <div class="action-icon">👷</div>
+                    <div class="action-content">
+                        <h3>Manage Crews</h3>
+                        <p>Add, edit, or remove crews</p>
+                    </div>
+                </a>
+
+                <a href="/admin/zip-routes" class="action-card">
+                    <div class="action-icon">🗺️</div>
+                    <div class="action-content">
+                        <h3>ZIP Routing</h3>
+                        <p>Configure automatic assignments</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

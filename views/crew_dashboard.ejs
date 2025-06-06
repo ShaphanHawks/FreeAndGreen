@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Pickup Scheduler</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <h1 class="nav-title">Pickup Scheduler</h1>
+            <div class="nav-links">
+                <span class="nav-user">Welcome, <%= crew.display_name %></span>
+                <a href="/crew/logout" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main">
+        <div class="container">
+            <div class="dashboard-header">
+                <h2>My Assigned Pickups</h2>
+                <p>Logged in as: <strong><%= crew.display_name %></strong></p>
+                <div class="pickup-count">
+                    <span class="count-badge"><%= pickupCount %> Scheduled</span>
+                </div>
+            </div>
+
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="error-message">
+                    <%= error %>
+                </div>
+            <% } %>
+
+            <% 
+            const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+            if (typeof req !== 'undefined' && req.query.success === 'pickup_completed') { %>
+                <div class="success-message">
+                    Pickup completed successfully! SMS confirmation sent to customer.
+                </div>
+            <% } %>
+
+            <% if (pickups.length > 0) { %>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time Slot</th>
+                                <th>Address</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% pickups.forEach(pickup => { %>
+                                <tr>
+                                    <td><%= pickup.formatted_date %></td>
+                                    <td><%= pickup.scheduled_timeslot %></td>
+                                    <td><%= pickup.address %></td>
+                                    <td>
+                                        <span class="status-badge status-<%= pickup.status.toLowerCase() %>">
+                                            <%= pickup.status %>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <% if (pickup.status === 'Scheduled') { %>
+                                            <form method="POST" action="/crew/complete/<%= pickup.id %>" style="display: inline;">
+                                                <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Mark this pickup as completed?')">
+                                                    ✓ Mark Completed
+                                                </button>
+                                            </form>
+                                        <% } else { %>
+                                            <span class="text-muted">Completed</span>
+                                        <% } %>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            <% } else { %>
+                <div class="empty-state">
+                    <div class="empty-icon">📅</div>
+                    <h3>No Scheduled Pickups</h3>
+                    <p>You're all caught up! New assignments will appear here.</p>
+                </div>
+            <% } %>
+        </div>
+    </main>
+</body>
+</html>

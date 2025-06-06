@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Pickup Scheduler</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <h1 class="nav-title">Pickup Scheduler</h1>
+            <div class="nav-links">
+                <span class="nav-user">Admin Panel</span>
+                <a href="/admin/logout" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main">
+        <div class="container-wide">
+            <div class="page-header">
+                <div>
+                    <h2><%= title %></h2>
+                    <a href="/admin/dashboard" class="breadcrumb">← Admin Dashboard</a>
+                </div>
+                <a href="/admin/pickups/export<%= Object.keys(filters).length > 0 ? '?' + new URLSearchParams(filters).toString() : '' %>" class="btn btn-success">
+                    📥 Download CSV
+                </a>
+            </div>
+
+            <!-- Filters -->
+            <div class="filter-container">
+                <form method="GET" action="/admin/pickups" class="filter-form">
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label for="start_date">Start Date</label>
+                            <input 
+                                type="date" 
+                                id="start_date" 
+                                name="start_date" 
+                                value="<%= filters.start_date || '' %>"
+                                class="form-input">
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="end_date">End Date</label>
+                            <input 
+                                type="date" 
+                                id="end_date" 
+                                name="end_date" 
+                                value="<%= filters.end_date || '' %>"
+                                class="form-input">
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="crew_id">Crew</label>
+                            <select id="crew_id" name="crew_id" class="form-select">
+                                <option value="all">All Crews</option>
+                                <option value="unassigned" <%= (filters.crew_id === 'unassigned') ? 'selected' : '' %>>Unassigned</option>
+                                <% crews.forEach(crew => { %>
+                                    <option value="<%= crew.id %>" <%= (filters.crew_id == crew.id) ? 'selected' : '' %>>
+                                        <%= crew.display_name %>
+                                    </option>
+                                <% }); %>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <button type="submit" class="btn btn-primary">Apply Filters</button>
+                            <a href="/admin/pickups" class="btn btn-secondary">Clear</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="error-message">
+                    <%= error %>
+                </div>
+            <% } %>
+
+            <% if (pickups.length > 0) { %>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Address</th>
+                                <th>Date</th>
+                                <th>Time Slot</th>
+                                <th>Crew</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% pickups.forEach(pickup => { %>
+                                <tr>
+                                    <td><strong>#<%= pickup.id %></strong></td>
+                                    <td><%= pickup.address %></td>
+                                    <td><%= pickup.formatted_date %></td>
+                                    <td><%= pickup.scheduled_timeslot %></td>
+                                    <td>
+                                        <% if (pickup.crew_email) { %>
+                                            <%= pickup.crew_name %>
+                                        <% } else { %>
+                                            <span class="text-muted">Unassigned</span>
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge status-<%= pickup.status.toLowerCase() %>">
+                                            <%= pickup.status %>
+                                        </span>
+                                    </td>
+                                    <td class="actions">
+                                        <% if (pickup.status === 'Scheduled') { %>
+                                            <button class="btn btn-sm btn-primary" onclick="showAssignModal(<%= pickup.id %>, '<%= pickup.crew_id || '' %>')">
+                                                Assign
+                                            </button>
+                                        <% } %>
+                                        <a href="/admin/pickups/<%= pickup.id %>" class="btn btn-sm btn-secondary">View</a>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-footer">
+                    <p>Showing <%= pickups.length %> pickup(s)</p>
+                </div>
+            <% } else { %>
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <h3>No Pickups Found</h3>
+                    <p>No pickups match your current filters.</p>
+                </div>
+            <% } %>
+        </div>
+    </main>
+
+    <!-- Assign Pickup Modal -->
+    <div id="assignModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Assign Pickup</h3>
+                <button onclick="hideAssignModal()" class="modal-close">&times;</button>
+            </div>
+            <form id="assignForm" method="POST">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="assign_crew_id">Select Crew:</label>
+                        <select id="assign_crew_id" name="crew_id" class="form-select" required>
+                            <option value="">Choose a crew</option>
+                            <% crews.forEach(crew => { %>
+                                <option value="<%= crew.id %>"><%= crew.display_name %></option>
+                            <% }); %>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Assign</button>
+                    <button type="button" onclick="hideAssignModal()" class="btn btn-secondary">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showAssignModal(pickupId, currentCrewId) {
+            document.getElementById('assignForm').action = `/admin/pickups/${pickupId}/assign`;
+            document.getElementById('assign_crew_id').value = currentCrewId;
+            document.getElementById('assignModal').style.display = 'flex';
+        }
+
+        function hideAssignModal() {
+            document.getElementById('assignModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('assignModal');
+            if (event.target === modal) {
+                hideAssignModal();
+            }
+        }
+    </script>
+</body>
+</html>
