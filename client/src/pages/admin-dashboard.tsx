@@ -228,7 +228,7 @@ export default function AdminDashboard() {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">{stats.todayPickups}</span>
+                  <span className="text-white text-sm font-medium">{stats?.todayPickups || 0}</span>
                 </div>
               </div>
               <div className="ml-4">
@@ -242,7 +242,7 @@ export default function AdminDashboard() {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">{stats.unassignedPickups}</span>
+                  <span className="text-white text-sm font-medium">{stats?.unassignedPickups || 0}</span>
                 </div>
               </div>
               <div className="ml-4">
@@ -256,7 +256,7 @@ export default function AdminDashboard() {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">{stats.completedThisWeek}</span>
+                  <span className="text-white text-sm font-medium">{stats?.completedThisWeek || 0}</span>
                 </div>
               </div>
               <div className="ml-4">
@@ -270,7 +270,7 @@ export default function AdminDashboard() {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-8 h-8 bg-slate-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">{stats.activeCrews}</span>
+                  <span className="text-white text-sm font-medium">{stats?.activeCrews || 0}</span>
                 </div>
               </div>
               <div className="ml-4">
