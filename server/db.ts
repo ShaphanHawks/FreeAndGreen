@@ -1,25 +1,15 @@
-// Database initialization for SQLite (for future use)
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3';
-import * as schema from '@shared/schema';
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import ws from "ws";
+import * as schema from "@shared/schema";
 
-let db: ReturnType<typeof drizzle> | null = null;
+neonConfig.webSocketConstructor = ws;
 
-export function initializeDatabase() {
-  try {
-    const sqlite = new Database('database.sqlite');
-    db = drizzle(sqlite, { schema });
-    console.log('SQLite database initialized');
-    return db;
-  } catch (error) {
-    console.error('Failed to initialize database:', error);
-    throw error;
-  }
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    "DATABASE_URL must be set. Did you forget to provision a database?",
+  );
 }
 
-export function getDatabase() {
-  if (!db) {
-    throw new Error('Database not initialized. Call initializeDatabase() first.');
-  }
-  return db;
-}
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle({ client: pool, schema });

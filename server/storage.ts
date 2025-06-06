@@ -12,6 +12,8 @@ import {
   type SmsTemplate,
   type InsertSmsTemplate
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, gte, lte, isNull, count } from "drizzle-orm";
 
 export interface IStorage {
   // Crew operations
@@ -259,4 +261,211 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async getCrewById(id: number): Promise<Crew | undefined> {
+    const [crew] = await db.select().from(crews).where(eq(crews.id, id));
+    return crew || undefined;
+  }
+
+  async getCrewByEmail(email: string): Promise<Crew | undefined> {
+    const [crew] = await db.select().from(crews).where(eq(crews.email, email));
+    return crew || undefined;
+  }
+
+  async createCrew(crew: InsertCrew): Promise<Crew> {
+    const [newCrew] = await db
+      .insert(crews)
+      .values(crew)
+      .returning();
+    return newCrew;
+  }
+
+  async updateCrew(id: number, crew: Partial<InsertCrew>): Promise<Crew | undefined> {
+    const [updatedCrew] = await db
+      .update(crews)
+      .set(crew)
+      .where(eq(crews.id, id))
+      .returning();
+    return updatedCrew || undefined;
+  }
+
+  async deleteCrew(id: number): Promise<boolean> {
+    const result = await db.delete(crews).where(eq(crews.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async getAllCrews(): Promise<Crew[]> {
+    return await db.select().from(crews);
+  }
+
+  async getPickupById(id: number): Promise<Pickup | undefined> {
+    const [pickup] = await db.select().from(pickups).where(eq(pickups.id, id));
+    return pickup || undefined;
+  }
+
+  async createPickup(pickup: InsertPickup): Promise<Pickup> {
+    const [newPickup] = await db
+      .insert(pickups)
+      .values(pickup)
+      .returning();
+    return newPickup;
+  }
+
+  async updatePickup(id: number, pickup: Partial<Pickup>): Promise<Pickup | undefined> {
+    const [updatedPickup] = await db
+      .update(pickups)
+      .set(pickup)
+      .where(eq(pickups.id, id))
+      .returning();
+    return updatedPickup || undefined;
+  }
+
+  async getPickupsByCrewId(crewId: number): Promise<Pickup[]> {
+    return await db
+      .select()
+      .from(pickups)
+      .where(and(eq(pickups.crew_id, crewId), eq(pickups.status, "Scheduled")))
+      .orderBy(pickups.scheduled_date);
+  }
+
+  async getAllPickups(): Promise<Pickup[]> {
+    return await db.select().from(pickups);
+  }
+
+  async getPickupsWithFilters(filters: {
+    startDate?: string;
+    endDate?: string;
+    crewId?: number;
+    status?: string;
+  }): Promise<(Pickup & { crew_email?: string })[]> {
+    let query = db
+      .select({
+        id: pickups.id,
+        address: pickups.address,
+        scheduled_date: pickups.scheduled_date,
+        scheduled_timeslot: pickups.scheduled_timeslot,
+        status: pickups.status,
+        crew_id: pickups.crew_id,
+        created_at: pickups.created_at,
+        completed_at: pickups.completed_at,
+        crew_email: crews.email,
+      })
+      .from(pickups)
+      .leftJoin(crews, eq(pickups.crew_id, crews.id));
+
+    const conditions = [];
+    if (filters.startDate) {
+      conditions.push(gte(pickups.scheduled_date, filters.startDate));
+    }
+    if (filters.endDate) {
+      conditions.push(lte(pickups.scheduled_date, filters.endDate));
+    }
+    if (filters.crewId) {
+      conditions.push(eq(pickups.crew_id, filters.crewId));
+    }
+    if (filters.status) {
+      conditions.push(eq(pickups.status, filters.status));
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+
+    return await query;
+  }
+
+  async getZipAssignmentByPrefix(prefix: string): Promise<ZipAssignment | undefined> {
+    const [assignment] = await db.select().from(zipAssignments).where(eq(zipAssignments.zip_prefix, prefix));
+    return assignment || undefined;
+  }
+
+  async createZipAssignment(assignment: InsertZipAssignment): Promise<ZipAssignment> {
+    const [newAssignment] = await db
+      .insert(zipAssignments)
+      .values(assignment)
+      .returning();
+    return newAssignment;
+  }
+
+  async deleteZipAssignment(id: number): Promise<boolean> {
+    const result = await db.delete(zipAssignments).where(eq(zipAssignments.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async getAllZipAssignments(): Promise<(ZipAssignment & { crew_display_name: string })[]> {
+    return await db
+      .select({
+        id: zipAssignments.id,
+        zip_prefix: zipAssignments.zip_prefix,
+        crew_id: zipAssignments.crew_id,
+        crew_display_name: crews.display_name,
+      })
+      .from(zipAssignments)
+      .leftJoin(crews, eq(zipAssignments.crew_id, crews.id));
+  }
+
+  async getSmsTemplate(templateType: string): Promise<SmsTemplate | undefined> {
+    const [template] = await db.select().from(smsTemplates).where(eq(smsTemplates.template_type, templateType));
+    return template || undefined;
+  }
+
+  async updateSmsTemplate(templateType: string, templateText: string): Promise<SmsTemplate> {
+    // Try to update first
+    const [updated] = await db
+      .update(smsTemplates)
+      .set({ template_text: templateText })
+      .where(eq(smsTemplates.template_type, templateType))
+      .returning();
+
+    if (updated) {
+      return updated;
+    }
+
+    // If no row was updated, insert a new one
+    const [inserted] = await db
+      .insert(smsTemplates)
+      .values({ template_type: templateType, template_text: templateText })
+      .returning();
+    
+    return inserted;
+  }
+
+  async getPickupStats(): Promise<{
+    todayPickups: number;
+    unassignedPickups: number;
+    completedThisWeek: number;
+    activeCrews: number;
+  }> {
+    const today = new Date().toISOString().split('T')[0];
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const [todayResult] = await db
+      .select({ count: pickups.id })
+      .from(pickups)
+      .where(eq(pickups.scheduled_date, today));
+
+    const [unassignedResult] = await db
+      .select({ count: pickups.id })
+      .from(pickups)
+      .where(and(eq(pickups.crew_id, null), eq(pickups.status, "Scheduled")));
+
+    const [completedResult] = await db
+      .select({ count: pickups.id })
+      .from(pickups)
+      .where(and(eq(pickups.status, "Completed"), gte(pickups.completed_at, weekAgo)));
+
+    const [crewsResult] = await db
+      .select({ count: crews.id })
+      .from(crews);
+
+    return {
+      todayPickups: todayResult?.count || 0,
+      unassignedPickups: unassignedResult?.count || 0,
+      completedThisWeek: completedResult?.count || 0,
+      activeCrews: crewsResult?.count || 0,
+    };
+  }
+}
+
+export const storage = new DatabaseStorage();
