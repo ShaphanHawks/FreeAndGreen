@@ -1,0 +1,111 @@
+You are tasked with generating the complete file structure and code for a simple pickup-scheduling web app. We need a minimal, no-frills system with a backend admin for myself and a crew dashboard for local crews. Please follow these strict requirements exactly – do not deviate or add unnecessary CRM features or extra fields beyond what’s listed. Use Node.js with Express and SQLite for persistence (or Replit DB if you prefer, but SQLite is fine). If code examples or structures conflict, follow these instructions over any defaults.  
+ 
+1. **Project Overview**  
+   - Public form where any visitor can enter only:  
+     - `address` (free-text field)  
+     - `desired_date` (date picker)  
+     - `timeslot` (dropdown: “8 AM–10 AM”, “10 AM–12 PM”, “12 PM–2 PM”, “2 PM–4 PM”).  
+   - Immediately upon submission, store a `pickup` record in the database with fields:  
+     - `id` (auto-increment integer)  
+     - `address` (string)  
+     - `scheduled_date` (ISO Date)  
+     - `scheduled_timeslot` (string)  
+     - `status` (string, default “Scheduled”)  
+     - `crew_id` (integer, default NULL)  
+     - `created_at` (timestamp)  
+   - Trigger an SMS confirmation using Twilio. The SMS body must read exactly:  
+     “We will be there on [scheduled_date] between [timeslot] to pick up your appliance.”  
+   - Crews: Each crew has an account (email + password). After logging in, they see only their assigned pickups, sorted by date ascending. They see: `scheduled_date`, `timeslot`, `address`, and a “Mark Completed” button.  
+   - When “Mark Completed” is clicked:  
+     - Update that pickup’s `status` to “Completed” and set a `completed_at` timestamp.  
+     - Send another SMS to the customer with the body:  
+       “Your pickup at [address] has been completed. Thank you!”  
+   - The admin user: A single admin account (credentials come from environment variables: `ADMIN_EMAIL`, `ADMIN_PASSWORD`). Admin panel features:  
+     - View all pickups (with filters for date range and crew).  
+     - Assign/unassign a pickup to any crew.  
+     - Create/edit/delete crew accounts (fields: `email`, `password`, `display_name`, `zip_prefixes` array).  
+     - Edit SMS templates (two templates: “Scheduled” and “Completed”).  
+     - Download a CSV export of pickups (with columns: id, address, scheduled_date, timeslot, crew_email, status, created_at, completed_at).  
+     - Set which ZIP prefixes route to which crew by managing a table of `{ zip_prefix: string, crew_id: integer }`. If an incoming pickup’s ZIP matches a prefix, auto-assign to that crew. If no match, leave `crew_id = NULL`.  
+   - Authentication: Use bcrypt for password hashing.  
+   - Database: Use SQLite3. Provide a `schema.sql` script to create tables `crews`, `pickups`, and `zip_assignments`.  
+   - SMS Integration: Use Twilio. All Twilio credentials must come from environment variables: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`. Provide a helper module `sms.js` that exports `sendSms(to, message)`.  
+   - Frontend:  
+     - Use EJS templates or plain HTML (no React) to keep it simple.  
+     - Public routes:  
+       - `GET /schedule` → render `schedule.ejs` (form).  
+       - `POST /schedule` → backend logic (validate input, save pickup, send SMS, render `confirmation.ejs` saying “Thank you—your pickup is scheduled for [date] [timeslot].”).  
+     - Crew routes (prefix `/crew`):  
+       - `GET /crew/login` → render `crew_login.ejs`.  
+       - `POST /crew/login` → authenticate; set session.  
+       - Protected middleware for anything under `/crew/*`.  
+       - `GET /crew/dashboard` → query the `pickups` table for `crew_id = loggedInCrew.id` and `status = “Scheduled”`; render `crew_dashboard.ejs` with a table of upcoming pickups plus “Mark Completed” buttons.  
+       - `POST /crew/complete/:pickupId` → mark as completed, send SMS, redirect back to dashboard.  
+     - Admin routes (prefix `/admin`):  
+       - `GET /admin/login` → render `admin_login.ejs`.  
+       - `POST /admin/login` → check against `ADMIN_EMAIL`/`ADMIN_PASSWORD`; set session.  
+       - Protected middleware for anything under `/admin/*`.  
+       - `GET /admin/dashboard` → show summary (today’s pickups count, unassigned pickups count, link to “Manage Crews” and “Manage ZIP Routing” and “View All Pickups”).  
+       - “Manage Crews” pages:  
+         - `GET /admin/crews` → list all crews, link to “Edit” or “Delete.”  
+         - `GET /admin/crews/new` → render `crew_form.ejs` for new crew.  
+         - `POST /admin/crews` → create crew with hashed password.  
+         - `GET /admin/crews/:id/edit` → render form populated with existing data.  
+         - `POST /admin/crews/:id` → update crew (email, name, password if changed, zip_prefixes as a comma-separated string).  
+         - `POST /admin/crews/:id/delete` → delete crew.  
+       - “Manage ZIP Routing”:  
+         - `GET /admin/zip-routes` → list `{ zip_prefix, crew_display_name }`.  
+         - `GET /admin/zip-routes/new` → render `zip_route_form.ejs`.  
+         - `POST /admin/zip-routes` → insert/replace into `zip_assignments` table.  
+         - `POST /admin/zip-routes/:id/delete` → delete route.  
+       - “View All Pickups”:  
+         - `GET /admin/pickups` → show table with filters: date range picker and crew dropdown. Each row: id, address, date, timeslot, crew_email (or “Unassigned”), status, “Assign” button (opens a small form to pick a crew), and “View Details.”  
+         - “Download CSV” button: triggers a GET `/admin/pickups/export?start=YYYY-MM‐DD&end=YYYY-MM-DD`.  
+   - Project file structure:  
+     ```
+     / (project root)
+     ├─ .env.example         # List of env vars (TWI_SID, TWI_TOKEN, TWI_PHONE, ADMIN_EMAIL, ADMIN_PASSWORD, SESSION_SECRET)
+     ├─ package.json
+     ├─ schema.sql           # CREATE TABLE statements
+     ├─ server.js            # Main Express entrypoint
+     ├─ db.js                # Exports a configured SQLite connection
+     ├─ sms.js               # Exports sendSms(to, text) function
+     ├─ routes/
+     │    ├─ schedule.js     # Public schedule routes
+     │    ├─ crew.js         # Crew login + dashboard + complete endpoint
+     │    └─ admin.js        # Admin login + CRUD pages + export
+     ├─ views/
+     │    ├─ schedule.ejs
+     │    ├─ confirmation.ejs
+     │    ├─ crew_login.ejs
+     │    ├─ crew_dashboard.ejs
+     │    ├─ admin_login.ejs
+     │    ├─ admin_dashboard.ejs
+     │    ├─ crews/          # crew_form.ejs, crews_list.ejs
+     │    ├─ zip_routes/     # zip_route_form.ejs, zip_routes_list.ejs
+     │    └─ pickups/        # pickups_list.ejs, pickup_details.ejs
+     ├─ public/              # CSS + minimal JS if needed
+     └─ README.md            # Instructions to install deps, run migrations, set up .env, and start server
+     ```
+   - **Step-by-Step Guidance**: For each file you generate, include a short comment at the top indicating its purpose.  
+   - **Routes & Middleware**:  
+     1. In `server.js`:  
+        - Load `dotenv`.  
+        - Set up Express, cookie-session (or express-session) with `SESSION_SECRET`.  
+        - Mount `routes/schedule.js` at `/`.  
+        - Mount `routes/crew.js` at `/crew`.  
+        - Mount `routes/admin.js` at `/admin`.  
+        - Use a middleware that checks session for admin/crew on each respective router.  
+     2. In `db.js`: Initialize SQLite with a `new sqlite3.Database('database.sqlite')` and export `db`. Run `schema.sql` manually once.  
+     3. In `sms.js`: Use the `twilio` npm package. Pull credentials from `process.env`. Export `sendSms(to, message)`.  
+   - **Styling**: Use a single `public/styles.css` file with very basic CSS (no frameworks). Keep forms and tables plain but readable.  
+   - **Validation & Error Pages**: For any validation error (e.g., missing address), re-render the form with an inline error message. For any unhandled exception, show a generic “Something went wrong” page.  
+   - **Environment Setup**: In `README.md`, write instructions:  
+     1. `npm install express sqlite3 twilio bcrypt ejs express-session dotenv csv-stringify`  
+     2. Copy `.env.example` to `.env` and fill in secrets.  
+     3. Run `sqlite3 database.sqlite < schema.sql`.  
+     4. `node server.js` to start on port 3000.  
+ 
+**Important**: Do not add any other database columns beyond what’s listed. Do not add any extra fields on the schedule form (no name, no phone, no email). Do not build a full CRM or lead-capture. Keep the UI minimal and only what’s specified. Follow exactly this file structure and naming.  
+ 
+Finally, after generating all files, provide a short summary of how to run the app and how each major route works.  
