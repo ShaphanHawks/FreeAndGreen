@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,7 @@ export default function AdminDashboard() {
   const { toast } = useToast();
 
   // Check if user is authenticated
-  const { data: stats } = useQuery<{
+  const { data: stats, isLoading, isError } = useQuery<{
     todayPickups: number;
     unassignedPickups: number;
     completedThisWeek: number;
@@ -54,31 +54,39 @@ export default function AdminDashboard() {
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
+  // FIX: Redirect only after confirming the user is not authenticated.
+  useEffect(() => {
+    // If the query results in an error or returns null (on 401), then redirect.
+    if (!isLoading && (isError || stats === null)) {
+      setLocation("/admin/login");
+    }
+  }, [isLoading, isError, stats, setLocation]);
+
+
   const { data: crews = [] } = useQuery<Crew[]>({
     queryKey: ["/api/admin/crews"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    enabled: !!stats, // Only run this query if the stats query was successful
   });
 
   const { data: pickups = [] } = useQuery<(Pickup & { crew_email?: string })[]>({
     queryKey: ["/api/admin/pickups", filters],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    enabled: !!stats, // Only run this query if the stats query was successful
   });
 
   const { data: zipRoutes = [] } = useQuery<(ZipAssignment & { crew_display_name: string })[]>({
     queryKey: ["/api/admin/zip-routes"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    enabled: !!stats, // Only run this query if the stats query was successful
   });
-
-  if (!stats) {
-    setLocation("/admin/login");
-    return null;
-  }
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", "/api/admin/logout");
     },
     onSuccess: () => {
+      queryClient.invalidateQueries(); // Invalidate all queries on logout
       setLocation("/admin/login");
     },
   });
@@ -103,7 +111,6 @@ export default function AdminDashboard() {
 
   const createCrewMutation = useMutation({
     mutationFn: async (data: any) => {
-      // Process zip_prefixes if it's a string
       if (typeof data.zip_prefixes === 'string') {
         data.zip_prefixes = data.zip_prefixes.split(',').map((s: string) => s.trim()).filter(Boolean);
       }
@@ -198,10 +205,19 @@ export default function AdminDashboard() {
       deleteZipRouteMutation.mutate(zipRouteId);
     }
   };
+  
+  // Display a loading indicator while checking auth status
+  if (isLoading || !stats) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div>Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-slate-100 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6">
           <div className="flex justify-between items-center">
