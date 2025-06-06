@@ -117,7 +117,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       req.session.crewId = crew.id;
-      res.json({ success: true, crew: { id: crew.id, display_name: crew.display_name } });
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Login failed due to session error" });
+        }
+        res.json({ success: true, crew: { id: crew.id, display_name: crew.display_name } });
+      });
     } catch (error) {
       console.error("Crew login error:", error);
       res.status(500).json({ message: "Login failed" });
@@ -205,7 +211,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       req.session.adminId = "admin";
-      res.json({ success: true });
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Login failed due to session error" });
+        }
+        res.json({ success: true });
+      });
     } catch (error) {
       console.error("Admin login error:", error);
       res.status(500).json({ message: "Login failed" });
