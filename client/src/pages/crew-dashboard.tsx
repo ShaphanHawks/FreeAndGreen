@@ -1,5 +1,5 @@
-import { useQuery, useMutation, queryClient } from "@tanstack/react-query";
-import { getQueryFn, apiRequest } from "@/lib/queryClient";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ export default function CrewDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const { data: profile } = useQuery({
+  const { data: profile } = useQuery<{ id: number; display_name: string; email: string } | null>({
     queryKey: ["/api/crew/profile"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });

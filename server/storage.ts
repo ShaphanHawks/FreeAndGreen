@@ -95,7 +95,13 @@ export class MemStorage implements IStorage {
 
   async createCrew(crew: InsertCrew): Promise<Crew> {
     const id = this.currentCrewId++;
-    const newCrew: Crew = { ...crew, id };
+    const newCrew: Crew = { 
+      id,
+      email: crew.email,
+      password: crew.password,
+      display_name: crew.display_name,
+      zip_prefixes: crew.zip_prefixes || null
+    };
     this.crews.set(id, newCrew);
     return newCrew;
   }
@@ -124,8 +130,12 @@ export class MemStorage implements IStorage {
   async createPickup(pickup: InsertPickup): Promise<Pickup> {
     const id = this.currentPickupId++;
     const newPickup: Pickup = { 
-      ...pickup, 
       id,
+      address: pickup.address,
+      scheduled_date: pickup.scheduled_date,
+      scheduled_timeslot: pickup.scheduled_timeslot,
+      status: pickup.status || "Scheduled",
+      crew_id: pickup.crew_id || null,
       created_at: new Date(),
       completed_at: null
     };

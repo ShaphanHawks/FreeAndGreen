@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useQuery, useMutation, queryClient } from "@tanstack/react-query";
-import { getQueryFn, apiRequest } from "@/lib/queryClient";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,7 +44,12 @@ export default function AdminDashboard() {
   const { toast } = useToast();
 
   // Check if user is authenticated
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<{
+    todayPickups: number;
+    unassignedPickups: number;
+    completedThisWeek: number;
+    activeCrews: number;
+  } | null>({
     queryKey: ["/api/admin/stats"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
