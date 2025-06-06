@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { crews, smsTemplates, zipAssignments } from "@shared/schema";
-import bcrypt from "bcrypt";
+import * as bcrypt from "bcrypt";
 
 export async function initializeDatabase() {
   try {
