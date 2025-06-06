@@ -5,15 +5,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { Shield } from "lucide-react";
+import { useEffect } from "react";
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  // Check if already authenticated
+  const { data: authStatus } = useQuery({
+    queryKey: ["/api/admin/auth"],
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (authStatus?.authenticated) {
+      setLocation("/admin/dashboard");
+    }
+  }, [authStatus, setLocation]);
 
   const form = useForm<AdminLogin>({
     resolver: zodResolver(adminLoginSchema),

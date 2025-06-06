@@ -230,6 +230,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Admin auth status check
+  app.get("/api/admin/auth", (req, res) => {
+    res.json({ authenticated: !!req.session.adminId });
+  });
+
   // Admin dashboard stats
   app.get("/api/admin/stats", requireAdmin, async (req, res) => {
     try {
