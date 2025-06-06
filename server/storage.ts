@@ -338,7 +338,7 @@ export class DatabaseStorage implements IStorage {
     crewId?: number;
     status?: string;
   }): Promise<(Pickup & { crew_email?: string })[]> {
-    let query = db
+    const baseQuery = db
       .select({
         id: pickups.id,
         address: pickups.address,
@@ -367,11 +367,17 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(pickups.status, filters.status));
     }
 
+    let results;
     if (conditions.length > 0) {
-      query = query.where(and(...conditions));
+      results = await baseQuery.where(and(...conditions));
+    } else {
+      results = await baseQuery;
     }
-
-    return await query;
+    
+    return results.map(r => ({
+      ...r,
+      crew_email: r.crew_email || undefined
+    }));
   }
 
   async getZipAssignmentByPrefix(prefix: string): Promise<ZipAssignment | undefined> {
@@ -393,7 +399,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllZipAssignments(): Promise<(ZipAssignment & { crew_display_name: string })[]> {
-    return await db
+    const results = await db
       .select({
         id: zipAssignments.id,
         zip_prefix: zipAssignments.zip_prefix,
@@ -402,6 +408,11 @@ export class DatabaseStorage implements IStorage {
       })
       .from(zipAssignments)
       .leftJoin(crews, eq(zipAssignments.crew_id, crews.id));
+    
+    return results.map(r => ({
+      ...r,
+      crew_display_name: r.crew_display_name || "Unassigned"
+    }));
   }
 
   async getSmsTemplate(templateType: string): Promise<SmsTemplate | undefined> {
@@ -446,9 +457,9 @@ export class DatabaseStorage implements IStorage {
       .where(eq(pickups.scheduled_date, today));
 
     const [unassignedResult] = await db
-      .select({ count: pickups.id })
+      .select({ count: count() })
       .from(pickups)
-      .where(and(eq(pickups.crew_id, null), eq(pickups.status, "Scheduled")));
+      .where(and(isNull(pickups.crew_id), eq(pickups.status, "Scheduled")));
 
     const [completedResult] = await db
       .select({ count: pickups.id })
